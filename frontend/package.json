@@ -1,7 +1,9 @@
 {
-  "name": "second",
+  "name": "convex-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Convex Frontend - Built with React, Vite, and MUI.",
+  "author": "Utpal Raj",
   "type": "module",
   "scripts": {
     "dev": "vite",

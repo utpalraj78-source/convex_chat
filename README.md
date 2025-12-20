@@ -1,6 +1,12 @@
 # CONVEX 🌌
 
-> **Secure, Seamless, and Stunning Communication Reimagined.**
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
+![React](https://img.shields.io/badge/frontend-React_%7C_Vite-61DAFB.svg)
+![Node](https://img.shields.io/badge/backend-Node.js-339933.svg)
+![MongoDB](https://img.shields.io/badge/database-MongoDB-47A248.svg)
+
+> **Secure, Seamless, and Stunning Communication.**
 
 Convex is a next-generation real-time messaging application built with the **MERN Stack** (MongoDB, Express, React, Node.js). It combines robust security with a cinematic, highly interactive "Space-Themed" user interface to provide a premium communication experience. From crystal-clear video calls to instant file sharing, Convex is designed for the modern web.
 

@@ -1,3 +1,8 @@
+/**
+ * CONVEX v1.0 - Project Complete
+ * Secure, Seamless, and Stunning Communication Reimagined.
+ * Core features fully implemented.
+ */
 import { Modal } from "@mui/material";
 import { useState, useEffect, useRef } from "react";
 import { useAuth, useTheme } from "./main";

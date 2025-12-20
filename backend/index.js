@@ -1,3 +1,8 @@
+/**
+ * CONVEX v1.0 - Project Complete
+ * Secure, Seamless, and Stunning Communication Reimagined.
+ * Core features fully implemented.
+ */
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
