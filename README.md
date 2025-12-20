@@ -153,3 +153,9 @@ Distributed under the MIT License. See `LICENSE` for more information.
 **Utpal Raj**
 
 - Project Link: [Convex Project](https://github.com/utpalraj78-source)
+
+---
+
+## 🐛 Known Issues
+
+This project is currently in active development. While the core features are stable, you may encounter minor bugs or UI inconsistencies. Feedback and bug reports are welcome!
