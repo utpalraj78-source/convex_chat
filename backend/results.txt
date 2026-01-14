@@ -1,0 +1,8 @@
+OK Storage Buckets: 
+Attempting to create 'messages' bucket...
+❌ Failed to create 'messages' bucket: new row violates row-level security policy
+Attempting to create 'avatars' bucket...
+❌ Failed to create 'avatars' bucket: new row violates row-level security policy
+OK 'users' table is accessible.
+OK 'messages' table is accessible.
+OK 'messages' table has 'file_url' column.
