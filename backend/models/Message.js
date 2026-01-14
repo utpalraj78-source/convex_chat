@@ -1,128 +1,98 @@
-import mongoose from 'mongoose';
-import { safeLog } from '../utils/logger.js';
 
-// Pre-save middleware to log messages securely
-const messageSchema = new mongoose.Schema({
-  from: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-    index: true
-  },
+import { supabase } from '../supabaseClient.js';
 
-  to: {
-    type: mongoose.Schema.Types.Mixed, // ObjectId for private, string for group
-    required: true,
-    index: true
-  },
+export default {
+  async create(data) {
+    // Map camelCase to snake_case for Supabase
+    const payload = {
+      from: data.from,
+      to: data.to,
+      type: data.type || 'text',
+      text: data.text || null,
+      file_url: data.fileUrl || null,
+      file_name: data.fileName || null,
+      file_size: data.fileSize || null,
+      is_encrypted: data.isEncrypted || false,
+      is_private: data.isPrivate || false,
+      created_at: data.created_at || new Date()
+    };
 
-  // Privacy and security fields
-  isEncrypted: {
-    type: Boolean,
-    default: false
-  },
+    // Ensure UUIDs are strings
+    if (payload.from && typeof payload.from === 'object') payload.from = payload.from.toString();
 
-  isPrivate: {
-    type: Boolean,
-    default: false
-  },
+    const { data: msg, error } = await supabase
+      .from('messages')
+      .insert([payload])
+      .select()
+      .single();
 
-  // For future features like message expiry
-  expiresAt: {
-    type: Date,
-    default: null
-  },
-
-  // For message deletion status
-  deletedFor: [{
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    deletedAt: {
-      type: Date,
-      default: Date.now
+    if (error) {
+      console.error('Supabase Message.create error:', error);
+      throw error;
     }
-  }],
-
-  type: {
-    type: String,
-    enum: ['text', 'voice', 'file'],
-    default: 'text',
-    required: true
+    return {
+      ...msg,
+      _id: msg.id,
+      createdAt: msg.created_at,
+      fileUrl: msg.file_url,
+      fileName: msg.file_name,
+      fileSize: msg.file_size
+    };
   },
 
-  // Text content for text messages
-  text: {
-    type: String,
-    validate: {
-      validator: function (val) {
-        return this.type === 'text' ? !!val : true;
-      },
-      message: 'Text is required for text messages'
-    }
+  async find(query) {
+    // Basic find support
+    let builder = supabase.from('messages').select('*');
+    Object.keys(query).forEach(key => {
+      builder = builder.eq(key, query[key]);
+    });
+
+    const { data, error } = await builder;
+    if (error) throw error;
+    return data.map(m => ({
+      ...m,
+      _id: m.id,
+      createdAt: m.created_at,
+      fileUrl: m.file_url,
+      fileName: m.file_name,
+      fileSize: m.file_size
+    }));
   },
 
-  // File/Voice message fields
-  fileUrl: {
-    type: String,
-    validate: {
-      validator: function(val) {
-        return ['file', 'voice'].includes(this.type) ? !!val : true;
-      },
-      message: 'File URL is required for file and voice messages'
-    }
-  },
-  fileName: {
-    type: String,
-    validate: {
-      validator: function(val) {
-        return ['file', 'voice'].includes(this.type) ? !!val : true;
-      },
-      message: 'File name is required for file and voice messages'
-    }
-  },
-  fileSize: {
-    type: Number,
-    validate: {
-      validator: function(val) {
-        return ['file', 'voice'].includes(this.type) ? !!val : true;
-      },
-      message: 'File size is required for file and voice messages'
-    }
+  // Specialized method for fetching private chat history
+  async getPrivateHistory(userId, peerId) {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .or(`and(from.eq.${userId},to.eq.${peerId}),and(from.eq.${peerId},to.eq.${userId})`)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data.map(m => ({
+      ...m,
+      _id: m.id,
+      createdAt: m.created_at,
+      fileUrl: m.file_url,
+      fileName: m.file_name,
+      fileSize: m.file_size
+    }));
   },
 
-  // Voice specific fields
-  audio: {
-    type: String,
-    validate: {
-      validator: function (val) {
-        return this.type === 'voice' ? !!val : true;
-      },
-      message: 'Audio URL is required for voice messages'
-    }
-  },
+  async getGroupHistory(groupId) {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('to', `group:${groupId}`)
+      .order('created_at', { ascending: true });
 
-  duration: {
-    type: Number,
-    validate: {
-      validator: function (val) {
-        return this.type === 'voice' ? typeof val === 'number' : true;
-      },
-      message: 'Duration is required for voice messages'
-    }
-  },
-
-  read: {
-    type: Boolean,
-    default: false
-  },
-
-  createdAt: {
-    type: Date,
-    default: Date.now
+    if (error) throw error;
+    return data.map(m => ({
+      ...m,
+      _id: m.id,
+      createdAt: m.created_at,
+      fileUrl: m.file_url,
+      fileName: m.file_name,
+      fileSize: m.file_size
+    }));
   }
-});
-
-const Message = mongoose.model('Message', messageSchema);
-export default Message;
+};

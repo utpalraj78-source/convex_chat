@@ -4,7 +4,7 @@
  * Core features fully implemented.
  */
 import express from 'express';
-import mongoose from 'mongoose';
+
 import cors from 'cors';
 import dotenv from 'dotenv';
 import http from 'http';
@@ -66,9 +66,18 @@ const filesDir = path.join(uploadsDir, 'files');
 // CORS middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+
   if (ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV !== 'production') {
+    // In development, allow any origin that has an origin header
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
   }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -88,31 +97,33 @@ app.use('/messages', messageRouter);
 
 
 // Connect to MongoDB and start server
+// Connect to Database (Supabase) and start server
 const startServer = async () => {
-  // Try to connect to MongoDB, but don't crash if it fails
   try {
-    const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/chat-app';
-    await mongoose.connect(MONGO_URI);
-    console.log("✅ Connected to MongoDB");
+    console.log("✅ Supabase Client Initialized");
 
     // Create admin user if doesn't exist
     const adminUser = await User.findOne({ username: 'heyitsadmin' });
     if (!adminUser) {
       const hash = await bcrypt.hash('24dcs042', 10);
-      await User.create({
-        username: 'heyitsadmin',
-        password: hash,
-        role: 'admin',
-        email: 'admin@chat.com',
-        isVerified: true
-      });
+      try {
+        await User.create({
+          username: 'heyitsadmin',
+          password: hash,
+          role: 'admin',
+          email: 'admin@chat.com',
+          verified: true
+        });
+        console.log("👑 Admin user created");
+      } catch (err) {
+        console.warn("⚠️ Could not create admin user (might already exist or schema error):", err.message);
+      }
     }
   } catch (error) {
-    console.warn("⚠️ Database connection failed. Starting in 'Frontend Only' mode.", error.message);
-    console.warn("⚠️ Chat and Login features will NOT work until MONGO_URI is set.");
+    console.warn("⚠️ Error checking admin user:", error.message);
   }
 
-  // Start server regardless of Database status
+  // Start server
   try {
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, () => {

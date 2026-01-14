@@ -38,7 +38,7 @@ export default function Chatbox({ user, peer, onBack, socket }) {
         if (mounted) {
           setMessages(data.map(msg => ({
             ...msg,
-            time: new Date(msg.time || msg.createdAt)
+            time: new Date(msg.time || msg.createdAt || msg.created_at)
           })).sort((a, b) => a.time - b.time));
         }
       } catch (err) { console.error(err); }
@@ -60,7 +60,7 @@ export default function Chatbox({ user, peer, onBack, socket }) {
           });
 
           if (isDuplicate) return prev;
-          return [...prev, { ...msg, time: new Date(msg.time || msg.createdAt) }].sort((a, b) => a.time - b.time);
+          return [...prev, { ...msg, time: new Date(msg.time || msg.createdAt || msg.created_at) }].sort((a, b) => a.time - b.time);
         });
       };
       socket.on("private:receive", handleReceive);
@@ -92,7 +92,7 @@ export default function Chatbox({ user, peer, onBack, socket }) {
         body: JSON.stringify({ to: toId, text: tempMsg.text, type: 'text' })
       });
       const savedMsg = await res.json();
-      setMessages(prev => prev.map(m => m.tempId === tempId ? { ...savedMsg, time: new Date(savedMsg.createdAt), tempId } : m));
+      setMessages(prev => prev.map(m => m.tempId === tempId ? { ...savedMsg, time: new Date(savedMsg.createdAt || savedMsg.created_at), tempId } : m));
       socket.emit("private:send", { ...savedMsg, to: toId, tempId });
     } catch (err) { setMessages(prev => prev.filter(m => m.tempId !== tempId)); }
     finally { setIsSending(false); }
@@ -113,21 +113,41 @@ export default function Chatbox({ user, peer, onBack, socket }) {
         setMessages(prev => [...prev, tempMsg]);
         playSend();
         const formData = new FormData();
-        formData.append("voice", blob, `voice-${Date.now()}.webm`);
         formData.append("from", user.id);
         formData.append("to", toId);
+        formData.append("voice", blob, `voice-${Date.now()}.webm`);
         try {
           const res = await fetch(`${API_URL}/messages/voice`, {
             method: "POST",
             headers: { Authorization: `Bearer ${user.token}` },
             body: formData,
           });
+
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || `Server error: ${res.status}`);
+          }
+
           const data = await res.json();
+          if (!data.fileUrl) throw new Error("Server did not return a file URL");
+
           const fileUrl = data.fileUrl.startsWith("http") ? data.fileUrl : `${API_URL}${data.fileUrl}`;
-          const realMsg = { ...data, to: toId, from: user.id, type: "voice", fileUrl, time: new Date(data.createdAt), tempId };
+          const realMsg = {
+            ...data,
+            to: toId,
+            from: user.id,
+            type: "voice",
+            fileUrl,
+            time: new Date(data.createdAt || data.created_at || Date.now()),
+            tempId
+          };
+
           setMessages(prev => prev.map(m => m.tempId === tempId ? realMsg : m));
           socket.emit("private:send", realMsg);
-        } catch (err) { setMessages(prev => prev.filter(m => m.tempId !== tempId)); }
+        } catch (err) {
+          console.error("[Chatbox] Voice upload failed:", err);
+          setMessages(prev => prev.filter(m => m.tempId !== tempId));
+        }
       };
       mediaRecorder.start();
       setRecorder(mediaRecorder);
@@ -154,9 +174,9 @@ export default function Chatbox({ user, peer, onBack, socket }) {
     setMessages(prev => [...prev, tempMsg]);
 
     const formData = new FormData();
-    formData.append("file", file);
     formData.append("from", user.id);
     formData.append("to", toId);
+    formData.append("file", file);
 
     try {
       const res = await fetch(`${API_URL}/messages/upload`, {
@@ -164,12 +184,26 @@ export default function Chatbox({ user, peer, onBack, socket }) {
         headers: { Authorization: `Bearer ${user.token}` },
         body: formData,
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Server error: ${res.status}`);
+      }
+
       const data = await res.json();
-      const realMsg = { ...data, to: toId, from: user.id, type: "file", time: new Date(data.createdAt), tempId };
+      const realMsg = {
+        ...data,
+        to: toId,
+        from: user.id,
+        type: "file",
+        time: new Date(data.createdAt || data.created_at || Date.now()),
+        tempId
+      };
+
       setMessages(prev => prev.map(m => m.tempId === tempId ? realMsg : m));
       socket.emit("private:send", realMsg);
     } catch (err) {
-      console.error(err);
+      console.error("[Chatbox] File upload failed:", err);
       setMessages(prev => prev.filter(m => m.tempId !== tempId));
     }
   };
@@ -241,22 +275,16 @@ export default function Chatbox({ user, peer, onBack, socket }) {
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>
         ) : (
-          <AnimatePresence initial={false}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {messages.map((msg, i) => {
               const isMine = msg.from === user.id;
+              const msgKey = msg._id || msg.tempId || `msg-${i}`;
               return (
                 <motion.div
-                  key={msg._id || msg.tempId || i}
-                  initial={{ opacity: 0, scale: 0.8, y: 20, x: isMine ? 20 : -20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  transition={{
-                    type: "spring",
-                    damping: 25,
-                    stiffness: 300,
-                    layout: { duration: 0.3 }
-                  }}
-                  layout
+                  key={msgKey}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
                   style={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '75%' }}
                 >
                   <Box sx={{
@@ -270,7 +298,7 @@ export default function Chatbox({ user, peer, onBack, socket }) {
                     position: 'relative'
                   }}>
                     {msg.type === "text" && <Typography sx={{ fontSize: '0.95rem', fontWeight: 500, lineHeight: 1.5 }}>{msg.text}</Typography>}
-                    {msg.type === "voice" && (
+                    {msg.type === "voice" && msg.fileUrl && (
                       <audio controls src={msg.fileUrl.startsWith('http') || msg.fileUrl.startsWith('blob:') ? msg.fileUrl : `${API_URL}${msg.fileUrl}`}
                         style={{ width: 220, filter: isMine ? 'invert(1)' : 'none' }} />
                     )}
@@ -281,19 +309,21 @@ export default function Chatbox({ user, peer, onBack, socket }) {
                           <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>{msg.fileName}</Typography>
                           <Typography variant="caption" sx={{ opacity: 0.7 }}>{(msg.fileSize / 1024).toFixed(1)} KB</Typography>
                         </Box>
-                        <IconButton size="small" component="a" href={`${API_URL}${msg.fileUrl}`} download target="_blank" sx={{ color: '#fff' }}>
-                          <Download fontSize="small" />
-                        </IconButton>
+                        {msg.fileUrl && (
+                          <IconButton size="small" component="a" href={msg.fileUrl.startsWith('http') ? msg.fileUrl : `${API_URL}${msg.fileUrl}`} download target="_blank" sx={{ color: '#fff' }}>
+                            <Download fontSize="small" />
+                          </IconButton>
+                        )}
                       </Box>
                     )}
                     <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 0.7, textAlign: 'right', fontSize: '0.7rem' }}>
-                      {format(new Date(msg.time), "HH:mm")}
+                      {msg.time && !isNaN(msg.time.getTime()) ? format(msg.time, "HH:mm") : "00:00"}
                     </Typography>
                   </Box>
                 </motion.div>
               );
             })}
-          </AnimatePresence>
+          </Box>
         )}
         <div ref={messagesEndRef} />
       </Box>

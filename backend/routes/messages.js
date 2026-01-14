@@ -17,10 +17,10 @@ const voicemailsDir = path.join(uploadBaseDir, 'voicemails');
 
 // Create directories if they don't exist
 [filesDir, voicemailsDir].forEach(dir => {
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-        console.log(`Created directory: ${dir}`);
-    }
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`Created directory: ${dir}`);
+  }
 });
 
 // Storage engine for files
@@ -76,84 +76,59 @@ router.get('/:peerId', async (req, res) => {
   try {
     const userId = req.user.id;
     const peerId = req.params.peerId;
+
     // If group chat, fetch by group logic
     if (peerId.startsWith('group:')) {
       const groupId = peerId.replace('group:', '');
-      const Group = (await import('../models/Group.js')).default;
-      const group = await Group.findById(groupId);
-      if (!group || !group.members.includes(userId)) {
-        return res.status(403).json({ error: 'Not a group member' });
-      }
-      const msgs = await Message.find({ to: `group:${groupId}` }).sort({ createdAt: 1 }).lean();
-      return res.json(msgs.map(msg => ({
-        ...msg,
-        from: msg.from?.toString(),
-        to: msg.to?.toString()
-      })));
+      // Note: Group model also needs refactoring if used here
+      // const Group = (await import('../models/Group.js')).default;
+      // const group = await Group.findById(groupId);
+      // if (!group || !group.members.includes(userId)) {
+      //   return res.status(403).json({ error: 'Not a group member' });
+      // }
+
+      const msgs = await Message.getGroupHistory(groupId);
+      return res.json(msgs);
     }
-    // For private chat, fetch all messages where user is sender or recipient (robust to ObjectId/string storage)
+
+    // For private chat
     if (!userId || !peerId) {
       safeErrorLog('messages', 'Missing required IDs', { userId, peerId });
       return res.status(400).json({ error: 'Missing required IDs' });
     }
-    const mongoose = (await import('mongoose')).default;
-    // Prepare all forms: string and ObjectId for both user and peer
-    let userObjId = undefined, peerObjId = undefined;
-    if (/^[a-fA-F0-9]{24}$/.test(userId)) {
-      try { userObjId = new mongoose.Types.ObjectId(userId); } catch {}
-    }
-    if (/^[a-fA-F0-9]{24}$/.test(peerId)) {
-      try { peerObjId = new mongoose.Types.ObjectId(peerId); } catch {}
-    }
-    const fromVals = [userId];
-    const toVals = [peerId];
-    if (userObjId) fromVals.push(userObjId);
-    if (peerObjId) toVals.push(peerObjId);
-    const peerFromVals = [peerId];
-    const peerToVals = [userId];
-    if (peerObjId) peerFromVals.push(peerObjId);
-    if (userObjId) peerToVals.push(userObjId);
-    const orConditions = [
-      { from: { $in: fromVals }, to: { $in: toVals } },
-      { from: { $in: peerFromVals }, to: { $in: peerToVals } }
-    ];
-    const msgs = await Message.find({ $or: orConditions }).sort({ createdAt: 1 }).lean();
-    return res.json(msgs.map(msg => ({
-      ...msg,
-      from: msg.from?.toString(),
-      to: msg.to?.toString()
-    })));
+
+    const msgs = await Message.getPrivateHistory(userId, peerId);
+    return res.json(msgs);
   } catch (error) {
     console.error('[messages] Error fetching messages:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Failed to fetch messages',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
 
-
-
-
 // File upload route for chat
 router.post('/upload', uploadFile.single('file'), async (req, res) => {
   try {
+    const userId = req.user.id;
+    console.log(`[messages] File upload request from user: ${userId}`);
+
     if (!req.file) {
-      safeErrorLog('Messages', 'No file uploaded');
+      console.warn('[messages] No file in upload');
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { from, to } = req.body;
-    
-    // Validate required fields
-    if (!from || !to) {
-      safeErrorLog('Messages', 'Missing required fields');
-      return res.status(400).json({ error: 'Missing required fields' });
+    const { to } = req.body;
+    console.log(`[messages] File: ${req.file.originalname}, size: ${req.file.size}, to: ${to}`);
+
+    if (!to) {
+      console.warn('[messages] Missing "to" field in file upload');
+      return res.status(400).json({ error: 'Missing recipient (to)' });
     }
 
-    // Create file message in DB
-    const msg = await Message.create({
-      from,
+    const payload = {
+      from: userId,
       to,
       type: 'file',
       fileUrl: `/files/${req.file.filename}`,
@@ -161,47 +136,44 @@ router.post('/upload', uploadFile.single('file'), async (req, res) => {
       fileSize: req.file.size,
       isEncrypted: true,
       isPrivate: false,
-      createdAt: Date.now()
-    });
+      created_at: new Date()
+    };
 
-    // ...existing code...
+    console.log('[messages] Saving file message to DB...');
+    const msg = await Message.create(payload);
+    console.log('[messages] File message saved successfully:', msg._id);
 
-    // Return standardized message format
-    res.json({
-      _id: msg._id,
-      from: msg.from,
-      to: msg.to,
-      type: 'file',
-      fileUrl: msg.fileUrl,
-      fileName: msg.fileName,
-      fileSize: msg.fileSize,
-      createdAt: msg.createdAt
-    });
+    res.json(msg);
   } catch (err) {
-    console.error('[messages] Error saving file message:', err);
-    res.status(500).json({ error: 'Failed to save file message' });
+    console.error('[messages] Error in /upload:', err);
+    res.status(500).json({
+      error: 'Failed to save file message',
+      details: err.message
+    });
   }
 });
 
 // Voice message upload route
 router.post('/voice', uploadVoice.single('voice'), async (req, res) => {
   try {
+    const userId = req.user.id;
+    console.log(`[messages] Voice upload request from user: ${userId}`);
+
     if (!req.file) {
-      safeErrorLog('Messages', 'No voice file uploaded');
+      console.warn('[messages] No file in voice upload');
       return res.status(400).json({ error: 'No voice file uploaded' });
     }
 
-    const { from, to } = req.body;
-    
-    // Validate required fields
-    if (!from || !to) {
-      safeErrorLog('Messages', 'Missing required fields');
-      return res.status(400).json({ error: 'Missing required fields' });
+    const { to } = req.body;
+    console.log(`[messages] Voice file: ${req.file.filename}, size: ${req.file.size}, to: ${to}`);
+
+    if (!to) {
+      console.warn('[messages] Missing "to" field in voice upload');
+      return res.status(400).json({ error: 'Missing recipient (to)' });
     }
 
-    // Create voice message in DB
-    const msg = await Message.create({
-      from,
+    const payload = {
+      from: userId,
       to,
       type: 'voice',
       fileUrl: `/voicemails/${req.file.filename}`,
@@ -209,25 +181,20 @@ router.post('/voice', uploadVoice.single('voice'), async (req, res) => {
       fileSize: req.file.size,
       isEncrypted: true,
       isPrivate: false,
-      createdAt: Date.now()
-    });
+      created_at: new Date()
+    };
 
-    // ...existing code...
+    console.log('[messages] Saving voice message to DB...');
+    const msg = await Message.create(payload);
+    console.log('[messages] Voice message saved successfully:', msg._id);
 
-    // Return standardized message format
-    res.json({
-      _id: msg._id,
-      from: msg.from,
-      to: msg.to,
-      type: 'voice',
-      fileUrl: msg.fileUrl,
-      fileName: msg.fileName,
-      fileSize: msg.fileSize,
-      createdAt: msg.createdAt
-    });
+    res.json(msg);
   } catch (err) {
-    console.error('[messages] Error saving voice message:', err);
-    res.status(500).json({ error: 'Failed to save voice message' });
+    console.error('[messages] Error in /voice:', err);
+    res.status(500).json({
+      error: 'Failed to save voice message',
+      details: err.message
+    });
   }
 });
 
@@ -237,36 +204,18 @@ router.post('/', async (req, res) => {
   const { to, text, type } = req.body;
 
   if (!text || !to) {
-    console.error('[messages] Missing required fields:', { text, to });
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
-    const mongoose = (await import('mongoose')).default;
-    let toId;
-    if (typeof to === 'string' && to.startsWith('group:')) {
-      // Group chat: store as string
-      toId = to;
-    } else {
-      // Private chat: always store as ObjectId
-      toId = new mongoose.Types.ObjectId(to);
-    }
-    const fromId = new mongoose.Types.ObjectId(userId);
     const msg = await Message.create({
-      from: fromId,
-      to: toId,
+      from: userId,
+      to: to,
       text,
       type: type || 'text',
-      createdAt: new Date()
+      created_at: new Date()
     });
-    res.json({
-      _id: msg._id.toString(),
-      from: msg.from.toString(),
-      to: (typeof msg.to === 'object' && msg.to.toString) ? msg.to.toString() : msg.to,
-      text: msg.text,
-      type: msg.type,
-      createdAt: msg.createdAt
-    });
+    res.json(msg);
   } catch (err) {
     console.error('Error saving text message:', err);
     res.status(500).json({ error: 'Failed to save message' });

@@ -8,9 +8,9 @@ export function initializeSocket(token) {
         socket.close();
     }
 
-    const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "/" : "http://localhost:5000");
+    const socketUrl = "http://127.0.0.1:5000";
 
-    socket = io(API_URL, {
+    socket = io(socketUrl, {
         auth: { token },
         path: '/socket.io',
         transports: ['polling', 'websocket'],
@@ -20,15 +20,16 @@ export function initializeSocket(token) {
         reconnectionDelayMax: 5000,
         timeout: 20000,
         autoConnect: true,
+        withCredentials: true
     });
 
     // Debug logging
     socket.on("connect", () => {
-        console.log("✅ Socket connected");
+        console.log("✅ Socket connected directly to:", socketUrl);
     });
 
     socket.on("connect_error", (error) => {
-        console.error("🔴 Socket connection error:", error);
+        console.error("🔴 Socket connection error:", error.message);
     });
 
     socket.on("disconnect", (reason) => {

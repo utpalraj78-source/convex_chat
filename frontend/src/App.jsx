@@ -24,7 +24,7 @@ import { createVideoCall } from "./VideoCallManager";
 import PropTypes from "prop-types";
 import { motion, AnimatePresence } from "framer-motion";
 
-export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? "" : "http://localhost:5000");
+export const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
 const StyledBadge = styled(Badge, {
   shouldForwardProp: (prop) => prop !== "isOnline",
@@ -290,11 +290,25 @@ export default function App() {
 
   useEffect(() => {
     if (!user?.token) return;
-    const s = io(API_URL, {
+    const socketUrl = "http://127.0.0.1:5000";
+    const s = io(socketUrl, {
+      path: "/socket.io",
       auth: { token: user.token },
-      transports: ["websocket", "polling"],
-      reconnection: true
+      transports: ["polling", "websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      timeout: 10000,
+      withCredentials: true
     });
+
+    s.on("connect", () => {
+      console.log("✅ Socket connected directly to:", socketUrl);
+    });
+
+    s.on("connect_error", (err) => {
+      console.error("🔴 Socket connection error:", err.message);
+    });
+
     setSocket(s);
     registerSocket(s);
     s.on("onlineUsers", list => setOnlineUsers(list));

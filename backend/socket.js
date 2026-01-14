@@ -11,39 +11,34 @@ export default function attachWS(server) {
   const io = new Server(server, {
     cors: {
       origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+      methods: ["GET", "POST"],
       credentials: true
     },
     connectionStateRecovery: {
-      maxDisconnectionDuration: 5 * 60 * 1000, // 5 minutes
+      maxDisconnectionDuration: 5 * 60 * 1000,
       skipMiddlewares: true,
     },
-    pingTimeout: 60000,        // Increased to 60 seconds
-    pingInterval: 25000,       // Keep 25 seconds
-    upgradeTimeout: 20000,     // Increased to 20 seconds
+    pingTimeout: 60000,
+    pingInterval: 25000,
     transports: ['polling', 'websocket'],
-    allowUpgrades: true,
-    maxHttpBufferSize: 1e8,    // 100 MB
-    cookie: {
-      name: "io",
-      path: "/",
-      httpOnly: true,
-      sameSite: "lax"
-    }
+    allowUpgrades: true
   });
 
   // Authenticate socket with JWT
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
-    if (!token) return next(new Error("Unauthorized"));
+    if (!token) {
+      console.warn("[socket.io] Connection rejected: No token provided");
+      return next(new Error("Unauthorized"));
+    }
 
     try {
       const payload = jwt.verify(token, process.env.JWT_SECRET);
       socket.user = payload;
+      console.log(`[socket.io] User authenticated: ${payload.id}`);
       next();
     } catch (err) {
-      console.error("JWT verification failed", err);
+      console.error("[socket.io] JWT verification failed:", err.message);
       next(new Error("Unauthorized"));
     }
   });
@@ -95,7 +90,7 @@ export default function attachWS(server) {
     socket.on("call:request", async ({ to, type }) => {
       try {
         console.log(`[socket.io] call:request from ${userId} to ${to}, type: ${type}`);
-        const caller = await User.findById(userId).select("username");
+        const caller = await User.findById(userId);
         io.to(to).emit("call:request", {
           from: userId,
           name: caller?.username || "Unknown User",
@@ -108,7 +103,7 @@ export default function attachWS(server) {
     });
 
     socket.on("call:answer", async ({ to, accepted, type }) => {
-      const responder = await User.findById(userId).select("username");
+      const responder = await User.findById(userId);
       io.to(to).emit("call:answer", {
         from: userId,
         accepted,

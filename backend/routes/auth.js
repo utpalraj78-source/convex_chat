@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { generateOtp } from "../utils/otp.js";
 import nodemailer from "nodemailer";
+import { supabase } from "../supabaseClient.js";
 
 const router = express.Router();
 
@@ -49,7 +50,7 @@ router.post('/request-password-otp', async (req, res) => {
 
     const otp = generateOtp();
     user.otp = otp;
-    user.otpExpiry = Date.now() + 5 * 60 * 1000;
+    user.otp_expiry = Date.now() + 5 * 60 * 1000;
     await user.save();
 
     try {
@@ -73,11 +74,11 @@ router.post('/change-password-otp', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     if (user.otp !== otp) return res.status(400).json({ error: 'Invalid OTP' });
-    if (Date.now() > user.otpExpiry) return res.status(400).json({ error: 'OTP expired' });
+    if (Date.now() > user.otp_expiry) return res.status(400).json({ error: 'OTP expired' });
 
     user.password = await bcrypt.hash(newPassword, 10);
     user.otp = null;
-    user.otpExpiry = null;
+    user.otp_expiry = null;
     await user.save();
 
     res.json({ message: 'Password reset successfully' });
@@ -111,20 +112,36 @@ console.log("🚀 auth.js loaded");
 
 // ===== Helper: Send OTP Email =====
 async function sendOtpEmail(email, otp) {
+  console.log(`📧 Attempting to send OTP to ${email}...`);
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // use SSL
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: "Your OTP Code",
-    html: `<p>Your OTP code is: <b>${otp}</b></p>`,
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: `"Convex Chat" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Your OTP Code - Convex Chat",
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #4f46e5;">Welcome to Convex!</h2>
+          <p>Your verification code is:</p>
+          <h1 style="letter-spacing: 5px; color: #111827;">${otp}</h1>
+          <p>This code will expire in 5 minutes.</p>
+        </div>
+      `,
+    });
+    console.log("✅ Email sent successfully:", info.messageId);
+  } catch (error) {
+    console.error("❌ Nodemailer Error:", error.message);
+    throw error; // Re-throw so the caller knows it failed
+  }
 }
 
 // ===== REGISTER =====
@@ -138,9 +155,26 @@ router.post('/register', async (req, res) => {
     if (role && !['admin', 'user'].includes(role))
       return res.status(400).json({ error: 'Invalid role.' });
 
-    const existingUser = await User.findOne({ username });
-    if (existingUser)
-      return res.status(409).json({ error: 'Username already taken.' });
+    // 1. Check if username is taken by a VERIFIED user
+    const userByUsername = await User.findOne({ username });
+    if (userByUsername && userByUsername.verified) {
+      return res.status(409).json({ error: 'Username is already taken by a verified user.' });
+    }
+
+    // 2. Check if email is taken by a VERIFIED user
+    const userByEmail = await User.findOne({ email });
+    if (userByEmail && userByEmail.verified) {
+      return res.status(409).json({ error: 'Email is already registered and verified.' });
+    }
+
+    // 3. If unverified users exist with this username or email, we delete them 
+    // to allow a fresh registration attempt.
+    if (userByUsername && !userByUsername.verified) {
+      await supabase.from('users').delete().eq('id', userByUsername.id);
+    }
+    if (userByEmail && !userByEmail.verified && (!userByUsername || userByEmail.id !== userByUsername.id)) {
+      await supabase.from('users').delete().eq('id', userByEmail.id);
+    }
 
     const hash = await bcrypt.hash(password, 10);
     const otp = generateOtp();
@@ -153,17 +187,27 @@ router.post('/register', async (req, res) => {
       email,
       verified: false,
       otp,
-      otpExpiry
+      otp_expiry: otpExpiry
     });
 
-    await sendOtpEmail(email, otp);
+    console.log("🔒 GENERATED OTP:", otp);
+
+    try {
+      await sendOtpEmail(email, otp);
+    } catch (emailError) {
+      console.error("❌ Failed to send email:", emailError.message);
+      // We still allow registration to proceed because the OTP is in the console
+    }
 
     res.status(201).json({
-      message: "User registered. OTP sent to email.",
+      message: "User registered. Please check your email for the OTP.",
       username: user.username
     });
   } catch (err) {
     console.error('Register Error:', err);
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'Username or email already exists.' });
+    }
     res.status(500).json({ error: 'Internal server error during registration.' });
   }
 });
@@ -179,11 +223,11 @@ router.post('/verify-otp', async (req, res) => {
     if (user.verified) return res.status(400).json({ error: "User already verified" });
 
     if (user.otp !== otp) return res.status(400).json({ error: "Invalid OTP" });
-    if (Date.now() > user.otpExpiry) return res.status(400).json({ error: "OTP expired" });
+    if (Date.now() > user.otp_expiry) return res.status(400).json({ error: "OTP expired" });
 
     user.verified = true;
     user.otp = null;
-    user.otpExpiry = null;
+    user.otp_expiry = null;
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
@@ -217,7 +261,7 @@ router.post("/update-email", async (req, res) => {
 
     const otp = generateOtp();
     user.otp = otp;
-    user.otpExpiry = Date.now() + 5 * 60 * 1000;
+    user.otp_expiry = Date.now() + 5 * 60 * 1000;
     await user.save();
 
     await sendOtpEmail(email, otp);
