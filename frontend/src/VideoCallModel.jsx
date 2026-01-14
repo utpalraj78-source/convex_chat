@@ -11,12 +11,13 @@ function VideoCallModal({ show, localRef, remoteRef, onEnd, type, peerName }) {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      if (remoteRef.current?.srcObject && remoteRef.current.srcObject.active) {
+      const stream = remoteRef.current?.srcObject;
+      if (stream && stream.active && stream.getTracks().length > 0) {
         setRemoteAttached(true);
       } else {
         setRemoteAttached(false);
       }
-    }, 1000);
+    }, 100);
     return () => clearInterval(timer);
   }, [remoteRef, show]);
 

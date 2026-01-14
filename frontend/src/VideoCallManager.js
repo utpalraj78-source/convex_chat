@@ -10,6 +10,8 @@ export function createVideoCall(socket, peerId, localRef, remoteRef, type) {
       { urls: "stun:stun4.l.google.com:19302" },
     ],
     iceCandidatePoolSize: 10,
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require',
   });
 
   let localStream = null;
