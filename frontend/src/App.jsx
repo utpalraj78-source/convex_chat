@@ -271,8 +271,8 @@ export default function App() {
   useEffect(() => {
     if (activeCall && activeCall.status === 'connected' && socket) {
       if (!callManagerRef.current) {
-        console.log('[App] Initializing VideoCallManager for', activeCall.to);
-        callManagerRef.current = createVideoCall(socket, activeCall.to, localRef, remoteRef);
+        console.log('[App] Initializing VideoCallManager for', activeCall.to, 'type:', activeCall.type);
+        callManagerRef.current = createVideoCall(socket, activeCall.to, localRef, remoteRef, activeCall.type);
 
         if (activeCall.isInitiator) {
           console.log('[App] Initiator starting call...');

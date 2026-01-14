@@ -1,6 +1,6 @@
 // VideoCallManager.js
-export function createVideoCall(socket, peerId, localRef, remoteRef) {
-  console.log('[WebRTC] Creating RTCPeerConnection for', peerId);
+export function createVideoCall(socket, peerId, localRef, remoteRef, type) {
+  console.log('[WebRTC] Creating RTCPeerConnection for', peerId, 'type:', type);
   const pc = new RTCPeerConnection({
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
@@ -59,7 +59,12 @@ export function createVideoCall(socket, peerId, localRef, remoteRef) {
   const startCall = async () => {
     try {
       console.log('[WebRTC] Starting call (Initiator)');
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const constraints = {
+        video: type === 'video',
+        audio: true
+      };
+      console.log('[WebRTC] Requesting media with constraints:', constraints);
+      localStream = await navigator.mediaDevices.getUserMedia(constraints);
       updateRefs();
 
       localStream.getTracks().forEach((track) => {
@@ -91,7 +96,12 @@ export function createVideoCall(socket, peerId, localRef, remoteRef) {
     if (pc.connectionState === "closed") return;
     try {
       console.log('[WebRTC] Handling offer from', from);
-      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const constraints = {
+        video: type === 'video',
+        audio: true
+      };
+      console.log('[WebRTC] Requesting media with constraints:', constraints);
+      localStream = await navigator.mediaDevices.getUserMedia(constraints);
       updateRefs();
 
       localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
