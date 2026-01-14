@@ -6,7 +6,10 @@ export function createVideoCall(socket, peerId, localRef, remoteRef, type) {
       { urls: "stun:stun.l.google.com:19302" },
       { urls: "stun:stun1.l.google.com:19302" },
       { urls: "stun:stun2.l.google.com:19302" },
+      { urls: "stun:stun3.l.google.com:19302" },
+      { urls: "stun:stun4.l.google.com:19302" },
     ],
+    iceCandidatePoolSize: 10,
   });
 
   let localStream = null;
@@ -55,13 +58,31 @@ export function createVideoCall(socket, peerId, localRef, remoteRef, type) {
     }
   };
 
+  const processIceQueue = async () => {
+    while (iceQueue.length > 0) {
+      const candidate = iceQueue.shift();
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (err) {
+        console.error("[WebRTC] Error adding queued ICE candidate", err);
+      }
+    }
+  };
+
   // ---- Local Media + Offer ----
   const startCall = async () => {
     try {
       console.log('[WebRTC] Starting call (Initiator)');
       const constraints = {
-        video: type === 'video',
-        audio: true
+        video: type === 'video' ? {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 24 }
+        } : false,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true
+        }
       };
       console.log('[WebRTC] Requesting media with constraints:', constraints);
       localStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -81,32 +102,33 @@ export function createVideoCall(socket, peerId, localRef, remoteRef, type) {
     }
   };
 
-  const processIceQueue = async () => {
-    while (iceQueue.length > 0) {
-      const candidate = iceQueue.shift();
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (err) {
-        console.error("[WebRTC] Error adding queued ICE candidate", err);
-      }
-    }
-  };
-
   const handleOffer = async (offer, from) => {
     if (pc.connectionState === "closed") return;
     try {
       console.log('[WebRTC] Handling offer from', from);
+
+      // Start setting remote description immediately
+      const remoteDescPromise = pc.setRemoteDescription(new RTCSessionDescription(offer));
+
       const constraints = {
-        video: type === 'video',
-        audio: true
+        video: type === 'video' ? {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 24 }
+        } : false,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true
+        }
       };
+
       console.log('[WebRTC] Requesting media with constraints:', constraints);
       localStream = await navigator.mediaDevices.getUserMedia(constraints);
       updateRefs();
 
       localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
 
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      await remoteDescPromise; // Ensure remote desc is set before creating answer
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
