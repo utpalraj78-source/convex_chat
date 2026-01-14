@@ -3,13 +3,12 @@
  * Secure, Seamless, and Stunning Communication Reimagined.
  * Core features fully implemented.
  */
-import { Modal } from "@mui/material";
 import { useState, useEffect, useRef } from "react";
 import { useAuth, useTheme } from "./main";
 import {
   Container, Paper, Typography, TextField, Button,
   Box, AppBar, Toolbar, Avatar, Grid, Card, CardContent,
-  CardActions, Badge, Switch, FormControlLabel, IconButton, Select, MenuItem, InputLabel, FormControl, OutlinedInput, Checkbox, ListItemText, Tooltip, CircularProgress, Popover
+  CardActions, Badge, Switch, FormControlLabel, IconButton, Select, MenuItem, InputLabel, FormControl, OutlinedInput, Checkbox, ListItemText, Tooltip, CircularProgress, Popover, Fade, Modal
 } from "@mui/material";
 import { styled, alpha } from "@mui/material/styles";
 import Chatbox from "./Chatbox";
