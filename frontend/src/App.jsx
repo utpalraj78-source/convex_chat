@@ -817,49 +817,49 @@ export default function App() {
         </Box>
 
         {/* Call Handlers */}
-        <AnimatePresence>
-          {showGlobalIncoming && (
-            <Modal open={true} onClose={rejectCall} closeAfterTransition>
-              <Box sx={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, bgcolor: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(20px)' }}>
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                  style={{ textAlign: 'center', p: 5 }}>
-                  <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-                    <Avatar className="ring-active" sx={{ width: 140, height: 140, mx: 'auto', mb: 4, bgcolor: 'var(--primary)', border: '5px solid var(--glass-border)', fontSize: 50 }}>
-                      {incomingCall?.name ? incomingCall.name.charAt(0) : '?'}
-                    </Avatar>
-                  </motion.div>
-                  <Typography variant="h4" className="poppins" sx={{ fontWeight: 900, mb: 1 }}>{incomingCall?.name || 'Someone'}</Typography>
-                  <Typography variant="h6" sx={{ color: 'var(--text-dim)', mb: 6, fontWeight: 500 }}>Incoming {incomingCall?.type || 'call'} call...</Typography>
-                  <Box sx={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
-                    <IconButton onClick={acceptCall} sx={{ bgcolor: '#10b981', color: '#fff', width: 80, height: 80, '&:hover': { bgcolor: '#059669', transform: 'scale(1.1)' }, transition: '0.3s' }}>
-                      <Videocam sx={{ fontSize: 35 }} />
-                    </IconButton>
-                    <IconButton onClick={rejectCall} sx={{ bgcolor: '#ef4444', color: '#fff', width: 80, height: 80, '&:hover': { bgcolor: '#dc2626', transform: 'scale(1.1)' }, transition: '0.3s' }}>
-                      <CallEnd sx={{ fontSize: 35 }} />
-                    </IconButton>
-                  </Box>
+        {/* Incoming Call Overlay */}
+        <Modal open={showGlobalIncoming} onClose={rejectCall} closeAfterTransition>
+          <Fade in={showGlobalIncoming}>
+            <Box sx={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, bgcolor: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(20px)' }}>
+              <Box sx={{ textAlign: 'center', p: 5 }}>
+                <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                  <Avatar className="ring-active" sx={{ width: 140, height: 140, mx: 'auto', mb: 4, bgcolor: 'var(--primary)', border: '5px solid var(--glass-border)', fontSize: 50 }}>
+                    {incomingCall?.name ? incomingCall.name.charAt(0) : '?'}
+                  </Avatar>
                 </motion.div>
+                <Typography variant="h4" className="poppins" sx={{ fontWeight: 900, mb: 1 }}>{incomingCall?.name || 'Someone'}</Typography>
+                <Typography variant="h6" sx={{ color: 'var(--text-dim)', mb: 6, fontWeight: 500 }}>Incoming {incomingCall?.type || 'call'} call...</Typography>
+                <Box sx={{ display: 'flex', gap: 5, justifyContent: 'center' }}>
+                  <IconButton onClick={acceptCall} sx={{ bgcolor: '#10b981', color: '#fff', width: 80, height: 80, '&:hover': { bgcolor: '#059669', transform: 'scale(1.1)' }, transition: '0.3s' }}>
+                    <Videocam sx={{ fontSize: 35 }} />
+                  </IconButton>
+                  <IconButton onClick={rejectCall} sx={{ bgcolor: '#ef4444', color: '#fff', width: 80, height: 80, '&:hover': { bgcolor: '#dc2626', transform: 'scale(1.1)' }, transition: '0.3s' }}>
+                    <CallEnd sx={{ fontSize: 35 }} />
+                  </IconButton>
+                </Box>
               </Box>
-            </Modal>
-          )}
-        </AnimatePresence>
+            </Box>
+          </Fade>
+        </Modal>
 
         {/* Outgoing Call Overlay */}
         <Modal open={!!activeCall && activeCall.status === 'ringing'} onClose={handleEndCall} closeAfterTransition>
-          <Box sx={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, bgcolor: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(20px)' }}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} style={{ textAlign: 'center' }}>
-              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-                <Avatar className="ring-active" sx={{ width: 140, height: 140, mx: 'auto', mb: 4, bgcolor: 'var(--primary)', border: '5px solid var(--glass-border)', fontSize: 50 }}>
-                  {peer?.username ? peer.username.charAt(0) : '?'}
-                </Avatar>
-              </motion.div>
-              <Typography variant="h4" className="poppins" sx={{ fontWeight: 900, mb: 1 }}>Calling {activeCall?.name || peer?.username || 'User'}...</Typography>
-              <Typography variant="h6" sx={{ color: 'var(--text-dim)', mb: 6, fontWeight: 500 }}>Ringing...</Typography>
-              <IconButton onClick={handleEndCall} sx={{ bgcolor: '#ef4444', color: '#fff', width: 80, height: 80, '&:hover': { bgcolor: '#dc2626', transform: 'scale(1.1)' }, transition: '0.3s' }}>
-                <CallEnd sx={{ fontSize: 35 }} />
-              </IconButton>
-            </motion.div>
-          </Box>
+          <Fade in={!!activeCall && activeCall.status === 'ringing'}>
+            <Box sx={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, bgcolor: 'rgba(2, 6, 23, 0.95)', backdropFilter: 'blur(20px)' }}>
+              <Box sx={{ textAlign: 'center' }}>
+                <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                  <Avatar className="ring-active" sx={{ width: 140, height: 140, mx: 'auto', mb: 4, bgcolor: 'var(--primary)', border: '5px solid var(--glass-border)', fontSize: 50 }}>
+                    {peer?.username ? peer.username.charAt(0) : '?'}
+                  </Avatar>
+                </motion.div>
+                <Typography variant="h4" className="poppins" sx={{ fontWeight: 900, mb: 1 }}>Calling {activeCall?.name || peer?.username || 'User'}...</Typography>
+                <Typography variant="h6" sx={{ color: 'var(--text-dim)', mb: 6, fontWeight: 500 }}>Ringing...</Typography>
+                <IconButton onClick={handleEndCall} sx={{ bgcolor: '#ef4444', color: '#fff', width: 80, height: 80, '&:hover': { bgcolor: '#dc2626', transform: 'scale(1.1)' }, transition: '0.3s' }}>
+                  <CallEnd sx={{ fontSize: 35 }} />
+                </IconButton>
+              </Box>
+            </Box>
+          </Fade>
         </Modal>
 
         <VideoCallModal show={!!activeCall && activeCall.status === 'connected'} localRef={localRef} remoteRef={remoteRef} onEnd={handleEndCall} type={activeCall?.type} peerName={activeCall?.name || peer?.username} />

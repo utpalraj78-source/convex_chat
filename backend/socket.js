@@ -20,7 +20,7 @@ export default function attachWS(server) {
     },
     pingTimeout: 60000,
     pingInterval: 25000,
-    transports: ['polling', 'websocket'],
+    transports: ['websocket', 'polling'],
     allowUpgrades: true
   });
 

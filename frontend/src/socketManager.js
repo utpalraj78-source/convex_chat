@@ -13,7 +13,7 @@ export function initializeSocket(token) {
     socket = io(socketUrl, {
         auth: { token },
         path: '/socket.io',
-        transports: ['polling', 'websocket'],
+        transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: Infinity,
         reconnectionDelay: 1000,
