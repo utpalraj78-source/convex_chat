@@ -96,9 +96,11 @@ if (fs.existsSync(frontendPath)) {
 
 // Connect to MongoDB and start server
 const startServer = async () => {
+  // Try to connect to MongoDB, but don't crash if it fails
   try {
     const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/chat-app';
     await mongoose.connect(MONGO_URI);
+    console.log("✅ Connected to MongoDB");
 
     // Create admin user if doesn't exist
     const adminUser = await User.findOne({ username: 'heyitsadmin' });
@@ -112,17 +114,22 @@ const startServer = async () => {
         isVerified: true
       });
     }
+  } catch (error) {
+    console.warn("⚠️ Database connection failed. Starting in 'Frontend Only' mode.", error.message);
+    console.warn("⚠️ Chat and Login features will NOT work until MONGO_URI is set.");
+  }
 
-    // Start server
+  // Start server regardless of Database status
+  try {
     const PORT = process.env.PORT || 5000;
-    server.listen(PORT);
+    server.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
 
     // Attach WebSocket
     attachWS(server);
-
-  } catch (error) {
-    console.error('❌ Server startup error:', error);
-    process.exit(1);
+  } catch (err) {
+    console.error("❌ Failed to start HTTP server:", err);
   }
 };
 
