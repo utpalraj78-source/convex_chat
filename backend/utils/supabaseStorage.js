@@ -21,6 +21,10 @@ export async function uploadToSupabase(buffer, bucket, path, contentType) {
             });
 
         if (error) {
+            if (error.status === 404 || error.statusCode === '404' || error.message?.includes('not found')) {
+                console.error(`❌ STORAGE ERROR: Bucket "${bucket}" not found. Please create it in Supabase Dashboard.`);
+                throw new Error(`Storage bucket "${bucket}" not found. Please create it in Supabase.`);
+            }
             console.error(`[Supabase Storage] Upload error for ${path}:`, error);
             throw error;
         }
@@ -32,7 +36,7 @@ export async function uploadToSupabase(buffer, bucket, path, contentType) {
 
         return publicUrl;
     } catch (err) {
-        console.error('[Supabase Storage] Helper error:', err);
+        console.error('[Supabase Storage] Helper error:', err.message);
         throw err;
     }
 }

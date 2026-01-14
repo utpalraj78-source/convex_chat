@@ -158,10 +158,11 @@ router.post('/voice', upload.single('voice'), async (req, res) => {
 
     res.json(msg);
   } catch (err) {
-    console.error('[messages] Error in /voice:', err);
+    console.error('[messages] CRITICAL ERROR in /voice:', err);
     res.status(500).json({
-      error: 'Failed to upload voice to storage',
-      details: err.message
+      error: 'Failed to process voice message',
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 });
