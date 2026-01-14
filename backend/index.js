@@ -85,14 +85,7 @@ app.get('/ping', (req, res) => res.json({ status: 'ok', time: new Date() }));
 app.use('/auth', authRouter);
 app.use('/messages', messageRouter);
 
-// Serve Frontend in Production
-const frontendPath = path.join(__dirname, '../frontend/dist');
-if (fs.existsSync(frontendPath)) {
-  app.use(express.static(frontendPath));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
-  });
-}
+
 
 // Connect to MongoDB and start server
 const startServer = async () => {
