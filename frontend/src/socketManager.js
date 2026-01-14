@@ -8,7 +8,9 @@ export function initializeSocket(token) {
         socket.close();
     }
 
-    socket = io("http://localhost:5000", {
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+    socket = io(API_URL, {
         auth: { token },
         path: '/socket.io',
         transports: ['polling', 'websocket'],
