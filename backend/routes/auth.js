@@ -11,26 +11,35 @@ import { supabase } from "../supabaseClient.js";
 
 const router = express.Router();
 
-// Profile picture upload setup
-const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const avatarStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${req.body.id || Date.now()}${ext}`);
-  }
-});
-const uploadAvatar = multer({ storage: avatarStorage });
+import { uploadToSupabase } from '../utils/supabaseStorage.js';
+
+const router = express.Router();
+
+// Profile picture upload setup (Memory storage for Supabase)
+const storage = multer.memoryStorage();
+const uploadAvatar = multer({ storage });
+
 // ===== UPLOAD PROFILE PICTURE =====
 router.post('/upload-avatar', uploadAvatar.single('avatar'), async (req, res) => {
   try {
     const { id } = req.body;
     if (!req.file || !id) return res.status(400).json({ error: 'Missing file or user id' });
+
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ error: 'User not found' });
-    user.avatar = `/uploads/avatars/${req.file.filename}`;
+
+    // Upload to Supabase Storage
+    const fileName = `${id}-${Date.now()}${path.extname(req.file.originalname)}`;
+    const avatarUrl = await uploadToSupabase(
+      req.file.buffer,
+      'avatars',
+      fileName,
+      req.file.mimetype
+    );
+
+    user.avatar = avatarUrl;
     await user.save();
+
     res.setHeader('Content-Type', 'application/json');
     res.json({ message: 'Avatar uploaded', avatar: user.avatar });
   } catch (err) {

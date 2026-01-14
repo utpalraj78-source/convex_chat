@@ -10,50 +10,11 @@ import { safeLog, safeErrorLog } from '../utils/logger.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure upload directories exist
-const uploadBaseDir = path.join(__dirname, '..', 'uploads');
-const filesDir = path.join(uploadBaseDir, 'files');
-const voicemailsDir = path.join(uploadBaseDir, 'voicemails');
+import { uploadToSupabase } from '../utils/supabaseStorage.js';
 
-// Create directories if they don't exist
-[filesDir, voicemailsDir].forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-    console.log(`Created directory: ${dir}`);
-  }
-});
-
-// Storage engine for files
-const fileStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, filesDir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + ext;
-    cb(null, uniqueName);
-  }
-});
-
-// Storage engine for voicemails
-const voiceStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, voicemailsDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1E9) + '.webm';
-    cb(null, uniqueName);
-  }
-});
-
-// File filter (optional)
-const fileFilter = (req, file, cb) => {
-  cb(null, true); // Accept all files
-};
-
-const uploadFile = multer({ storage: fileStorage, fileFilter });
-const uploadVoice = multer({ storage: voiceStorage });
-
+// Use memory storage for production-ready uploads
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 const router = express.Router();
 
@@ -80,13 +41,6 @@ router.get('/:peerId', async (req, res) => {
     // If group chat, fetch by group logic
     if (peerId.startsWith('group:')) {
       const groupId = peerId.replace('group:', '');
-      // Note: Group model also needs refactoring if used here
-      // const Group = (await import('../models/Group.js')).default;
-      // const group = await Group.findById(groupId);
-      // if (!group || !group.members.includes(userId)) {
-      //   return res.status(403).json({ error: 'Not a group member' });
-      // }
-
       const msgs = await Message.getGroupHistory(groupId);
       return res.json(msgs);
     }
@@ -109,7 +63,7 @@ router.get('/:peerId', async (req, res) => {
 });
 
 // File upload route for chat
-router.post('/upload', uploadFile.single('file'), async (req, res) => {
+router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const userId = req.user.id;
     console.log(`[messages] File upload request from user: ${userId}`);
@@ -120,18 +74,25 @@ router.post('/upload', uploadFile.single('file'), async (req, res) => {
     }
 
     const { to } = req.body;
-    console.log(`[messages] File: ${req.file.originalname}, size: ${req.file.size}, to: ${to}`);
-
     if (!to) {
       console.warn('[messages] Missing "to" field in file upload');
       return res.status(400).json({ error: 'Missing recipient (to)' });
     }
 
+    // Upload to Supabase Storage
+    const fileName = `${Date.now()}-${req.file.originalname}`;
+    const fileUrl = await uploadToSupabase(
+      req.file.buffer,
+      'messages',
+      `files/${fileName}`,
+      req.file.mimetype
+    );
+
     const payload = {
       from: userId,
       to,
       type: 'file',
-      fileUrl: `/files/${req.file.filename}`,
+      fileUrl,
       fileName: req.file.originalname,
       fileSize: req.file.size,
       isEncrypted: true,
@@ -147,14 +108,14 @@ router.post('/upload', uploadFile.single('file'), async (req, res) => {
   } catch (err) {
     console.error('[messages] Error in /upload:', err);
     res.status(500).json({
-      error: 'Failed to save file message',
+      error: 'Failed to upload file to storage',
       details: err.message
     });
   }
 });
 
 // Voice message upload route
-router.post('/voice', uploadVoice.single('voice'), async (req, res) => {
+router.post('/voice', upload.single('voice'), async (req, res) => {
   try {
     const userId = req.user.id;
     console.log(`[messages] Voice upload request from user: ${userId}`);
@@ -165,19 +126,26 @@ router.post('/voice', uploadVoice.single('voice'), async (req, res) => {
     }
 
     const { to } = req.body;
-    console.log(`[messages] Voice file: ${req.file.filename}, size: ${req.file.size}, to: ${to}`);
-
     if (!to) {
       console.warn('[messages] Missing "to" field in voice upload');
       return res.status(400).json({ error: 'Missing recipient (to)' });
     }
 
+    // Upload to Supabase Storage
+    const fileName = `${Date.now()}-voicemail.webm`;
+    const fileUrl = await uploadToSupabase(
+      req.file.buffer,
+      'messages',
+      `voicemails/${fileName}`,
+      'audio/webm'
+    );
+
     const payload = {
       from: userId,
       to,
       type: 'voice',
-      fileUrl: `/voicemails/${req.file.filename}`,
-      fileName: req.file.originalname || 'voicemail.webm',
+      fileUrl,
+      fileName: 'voicemail.webm',
       fileSize: req.file.size,
       isEncrypted: true,
       isPrivate: false,
@@ -192,7 +160,7 @@ router.post('/voice', uploadVoice.single('voice'), async (req, res) => {
   } catch (err) {
     console.error('[messages] Error in /voice:', err);
     res.status(500).json({
-      error: 'Failed to save voice message',
+      error: 'Failed to upload voice to storage',
       details: err.message
     });
   }

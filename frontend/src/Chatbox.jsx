@@ -190,12 +190,13 @@ export default function Chatbox({ user, peer, onBack, socket }) {
         throw new Error(errorData.error || `Server error: ${res.status}`);
       }
 
-      const data = await res.json();
+      const fileUrl = data.fileUrl.startsWith("http") ? data.fileUrl : `${API_URL}${data.fileUrl}`;
       const realMsg = {
         ...data,
         to: toId,
         from: user.id,
         type: "file",
+        fileUrl,
         time: new Date(data.createdAt || data.created_at || Date.now()),
         tempId
       };

@@ -8,7 +8,7 @@ export function initializeSocket(token) {
         socket.close();
     }
 
-    const socketUrl = "http://127.0.0.1:5000";
+    const socketUrl = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
     socket = io(socketUrl, {
         auth: { token },
