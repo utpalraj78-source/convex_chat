@@ -126,6 +126,13 @@ router.post('/voice', upload.single('voice'), async (req, res) => {
     }
 
     const { to } = req.body;
+    console.log('[messages] Voice upload details:', {
+      to,
+      fileName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    });
+
     if (!to) {
       console.warn('[messages] Missing "to" field in voice upload');
       return res.status(400).json({ error: 'Missing recipient (to)' });

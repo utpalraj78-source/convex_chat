@@ -27,8 +27,9 @@ export default {
       .single();
 
     if (error) {
-      console.error('Supabase Message.create error:', error);
-      throw error;
+      console.error('❌ Supabase Message.create error:', error);
+      console.error('Payload was:', payload);
+      throw new Error(`Database error: ${error.message || 'Unknown error'}`);
     }
     return {
       ...msg,

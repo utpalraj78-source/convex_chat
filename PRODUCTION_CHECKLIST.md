@@ -9,7 +9,11 @@ We have migrated file uploads to Supabase Storage to ensure they are not lost wh
 - Create two new buckets:
   1. `messages` (Set to **Public**)
   2. `avatars` (Set to **Public**)
-- Ensure the **Policies** allow authenticated users to upload and anyone to read (if you want public access).
+- **Set Storage Policies**:
+  - Click on "Policies" for each bucket.
+  - Add a policy for **Insert**: Allow "Authenticated" users to upload.
+  - Add a policy for **Select**: Allow "All" users to read (if public) or "Authenticated" users.
+  - *Tip*: Use the "Full access to all users" template for development, then lock it down to "Authenticated" for production.
 
 ## 2. Environment Variables
 Ensure the following variables are set in your production hosting environment (e.g., Azure App Service Configuration):
