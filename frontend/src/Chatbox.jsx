@@ -4,7 +4,7 @@ import { Send, AttachFile, SentimentSatisfiedAlt, Mic, Call, Videocam, MoreVert,
 import { format } from "date-fns";
 import useSound from "use-sound";
 import { useCall } from "./context/IncomingCallContext.jsx";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { API_URL } from "./App.jsx";
 
 export default function Chatbox({ user, peer, onBack, socket }) {

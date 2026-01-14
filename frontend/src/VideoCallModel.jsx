@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Modal, Box, IconButton, Typography, Avatar, Fade, Paper } from "@mui/material";
 import { CallEnd, Mic, MicOff, Videocam, VideocamOff, ScreenShare, VolumeUp } from "@mui/icons-material";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 function VideoCallModal({ show, localRef, remoteRef, onEnd, type, peerName }) {
   const [muted, setMuted] = useState(false);

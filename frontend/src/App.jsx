@@ -21,7 +21,7 @@ import CustomCursor from "./components/CustomCursor";
 import VideoCallModal from "./VideoCallModel";
 import { createVideoCall } from "./VideoCallManager";
 import PropTypes from "prop-types";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:5000";
 
@@ -696,123 +696,119 @@ export default function App() {
             />
           </Box>
           <Box sx={{ flex: 1, overflowY: 'auto', px: 1.5, pb: 2 }}>
-            <AnimatePresence>
-              {filteredUsers.map((u, index) => (
-                <motion.div
-                  key={u.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Box
-                    onClick={() => setPeer(u)}
-                    sx={{
-                      p: 1.5, mb: 0.5, borderRadius: '12px', cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex', alignItems: 'center', gap: 1.5,
-                      bgcolor: peer?.id === u.id ? 'var(--primary-glow)' : 'transparent',
-                      position: 'relative',
-                      '&:hover': { bgcolor: peer?.id === u.id ? 'var(--primary-glow)' : 'rgba(255,255,255,0.03)', transform: 'translateX(4px)' }
-                    }}>
-                    <StyledBadge overlap="circular" anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} variant="dot" isOnline={onlineUsers.includes(u.id)}>
-                      <Avatar
-                        src={u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `${API_URL}${u.avatar}`) : ""}
-                        sx={{ width: 44, height: 44, bgcolor: 'var(--secondary)', border: '1px solid var(--glass-border)' }}
-                      >
-                        {u.username[0]}
-                      </Avatar>
-                    </StyledBadge>
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.username}</Typography>
-                      <Typography variant="caption" sx={{ color: onlineUsers.includes(u.id) ? '#10b981' : 'var(--text-dim)', fontWeight: 500 }}>
-                        {onlineUsers.includes(u.id) ? 'Active now' : 'Offline'}
-                      </Typography>
-                    </Box>
-                    {peer?.id === u.id && (
-                      <motion.div layoutId="active-pill" style={{ position: 'absolute', left: -6, width: 4, height: 20, background: 'var(--primary)', borderRadius: 2 }} />
-                    )}
+            {filteredUsers.map((u, index) => (
+              <motion.div
+                key={u.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Box
+                  onClick={() => setPeer(u)}
+                  sx={{
+                    p: 1.5, mb: 0.5, borderRadius: '12px', cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex', alignItems: 'center', gap: 1.5,
+                    bgcolor: peer?.id === u.id ? 'var(--primary-glow)' : 'transparent',
+                    position: 'relative',
+                    '&:hover': { bgcolor: peer?.id === u.id ? 'var(--primary-glow)' : 'rgba(255,255,255,0.03)', transform: 'translateX(4px)' }
+                  }}>
+                  <StyledBadge overlap="circular" anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} variant="dot" isOnline={onlineUsers.includes(u.id)}>
+                    <Avatar
+                      src={u.avatar ? (u.avatar.startsWith('http') ? u.avatar : `${API_URL}${u.avatar}`) : ""}
+                      sx={{ width: 44, height: 44, bgcolor: 'var(--secondary)', border: '1px solid var(--glass-border)' }}
+                    >
+                      {u.username[0]}
+                    </Avatar>
+                  </StyledBadge>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.username}</Typography>
+                    <Typography variant="caption" sx={{ color: onlineUsers.includes(u.id) ? '#10b981' : 'var(--text-dim)', fontWeight: 500 }}>
+                      {onlineUsers.includes(u.id) ? 'Active now' : 'Offline'}
+                    </Typography>
                   </Box>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                  {peer?.id === u.id && (
+                    <motion.div layoutId="active-pill" style={{ position: 'absolute', left: -6, width: 4, height: 20, background: 'var(--primary)', borderRadius: 2 }} />
+                  )}
+                </Box>
+              </motion.div>
+            ))}
           </Box>
         </Box>
 
         {/* Main Chat Area - More focused */}
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative', bgcolor: 'var(--bg-main)' }}>
-          <AnimatePresence mode="wait">
-            {showSettings ? (
-              <motion.div key="settings" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ height: '100%', padding: '40px' }}>
-                <Box sx={{ maxWidth: 600, mx: 'auto' }}>
-                  <Typography variant="h4" className="poppins" sx={{ fontWeight: 800, mb: 4 }}>Account Settings</Typography>
+          {showSettings ? (
+            <motion.div key="settings" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} style={{ height: '100%', padding: '40px' }}>
+              <Box sx={{ maxWidth: 600, mx: 'auto' }}>
+                <Typography variant="h4" className="poppins" sx={{ fontWeight: 800, mb: 4 }}>Account Settings</Typography>
 
-                  <Paper className="glass" sx={{ p: 4, borderRadius: 5, mb: 4 }}>
-                    <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>Profile Information</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
-                      <Box sx={{ position: 'relative' }}>
-                        <Avatar
-                          src={user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${API_URL}${user.avatar}`) : ""}
-                          sx={{ width: 100, height: 100, border: '3px solid var(--primary)', boxShadow: '0 0 15px var(--primary-glow)' }}
-                        >
-                          {user?.username?.[0]}
-                        </Avatar>
-                        <IconButton
-                          component="label"
-                          sx={{
-                            position: 'absolute', bottom: -5, right: -5,
-                            bgcolor: 'var(--primary)', color: '#fff',
-                            '&:hover': { bgcolor: 'var(--secondary)' },
-                            width: 35, height: 35
-                          }}
-                        >
-                          <PhotoCamera sx={{ fontSize: 20 }} />
-                          <input type="file" hidden accept="image/*" onChange={handleAvatarUpload} />
-                        </IconButton>
-                      </Box>
-                      <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700 }}>{user?.username}</Typography>
-                        <Typography variant="body2" sx={{ color: 'var(--text-dim)' }}>Update your profile picture and secure your account</Typography>
+                <Paper className="glass" sx={{ p: 4, borderRadius: 5, mb: 4 }}>
+                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>Profile Information</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+                    <Box sx={{ position: 'relative' }}>
+                      <Avatar
+                        src={user?.avatar ? (user.avatar.startsWith('http') ? user.avatar : `${API_URL}${user.avatar}`) : ""}
+                        sx={{ width: 100, height: 100, border: '3px solid var(--primary)', boxShadow: '0 0 15px var(--primary-glow)' }}
+                      >
+                        {user?.username?.[0]}
+                      </Avatar>
+                      <IconButton
+                        component="label"
+                        sx={{
+                          position: 'absolute', bottom: -5, right: -5,
+                          bgcolor: 'var(--primary)', color: '#fff',
+                          '&:hover': { bgcolor: 'var(--secondary)' },
+                          width: 35, height: 35
+                        }}
+                      >
+                        <PhotoCamera sx={{ fontSize: 20 }} />
+                        <input type="file" hidden accept="image/*" onChange={handleAvatarUpload} />
+                      </IconButton>
+                    </Box>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 700 }}>{user?.username}</Typography>
+                      <Typography variant="body2" sx={{ color: 'var(--text-dim)' }}>Update your profile picture and secure your account</Typography>
+                    </Box>
+                  </Box>
+                </Paper>
+
+                <Paper className="glass" sx={{ p: 4, borderRadius: 5 }}>
+                  <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>Reset Password</Typography>
+
+                  {resetStep === 0 ? (
+                    <Box>
+                      <Typography sx={{ color: 'var(--text-dim)', mb: 2 }}>Enter your registered email to receive an OTP.</Typography>
+                      <TextField fullWidth label="Registered Email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} sx={{ mb: 3 }} />
+                      <Button fullWidth variant="contained" onClick={requestPasswordReset} className="premium-button" sx={{ py: 1.5 }}>Send OTP</Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      <Typography sx={{ color: 'var(--text-dim)', mb: 2 }}>Enter the OTP sent to your email and your new password.</Typography>
+                      <TextField fullWidth label="OTP Code" value={otp} onChange={e => setOtp(e.target.value)} sx={{ mb: 2 }} />
+                      <TextField fullWidth label="New Password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} sx={{ mb: 3 }} />
+                      <Box sx={{ display: 'flex', gap: 2 }}>
+                        <Button fullWidth variant="outlined" onClick={() => setResetStep(0)}>Back</Button>
+                        <Button fullWidth variant="contained" onClick={handlePasswordReset} className="premium-button">Change Password</Button>
                       </Box>
                     </Box>
-                  </Paper>
-
-                  <Paper className="glass" sx={{ p: 4, borderRadius: 5 }}>
-                    <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>Reset Password</Typography>
-
-                    {resetStep === 0 ? (
-                      <Box>
-                        <Typography sx={{ color: 'var(--text-dim)', mb: 2 }}>Enter your registered email to receive an OTP.</Typography>
-                        <TextField fullWidth label="Registered Email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} sx={{ mb: 3 }} />
-                        <Button fullWidth variant="contained" onClick={requestPasswordReset} className="premium-button" sx={{ py: 1.5 }}>Send OTP</Button>
-                      </Box>
-                    ) : (
-                      <Box>
-                        <Typography sx={{ color: 'var(--text-dim)', mb: 2 }}>Enter the OTP sent to your email and your new password.</Typography>
-                        <TextField fullWidth label="OTP Code" value={otp} onChange={e => setOtp(e.target.value)} sx={{ mb: 2 }} />
-                        <TextField fullWidth label="New Password" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} sx={{ mb: 3 }} />
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                          <Button fullWidth variant="outlined" onClick={() => setResetStep(0)}>Back</Button>
-                          <Button fullWidth variant="contained" onClick={handlePasswordReset} className="premium-button">Change Password</Button>
-                        </Box>
-                      </Box>
-                    )}
-                  </Paper>
-                </Box>
-              </motion.div>
-            ) : peer ? (
-              <motion.div key={peer.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.3 }} style={{ height: '100%' }}>
-                <Chatbox user={user} peer={peer} onBack={() => setPeer(null)} socket={socket} />
-              </motion.div>
-            ) : (
-              <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 0.1 }} transition={{ duration: 1 }}>
-                  <ChatBubble sx={{ fontSize: 200, color: 'var(--primary)' }} />
-                </motion.div>
-                <Typography variant="h5" className="poppins" sx={{ mt: -4, fontWeight: 700, opacity: 0.4 }}>Send a secure message</Typography>
-                <Typography variant="body2" sx={{ mt: 1, opacity: 0.3 }}>Select a conversation to start chatting</Typography>
+                  )}
+                </Paper>
               </Box>
-            )}
-          </AnimatePresence>
+            </motion.div>
+          ) : peer ? (
+            <motion.div key={peer.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.02 }} transition={{ duration: 0.3 }} style={{ height: '100%' }}>
+              <Chatbox user={user} peer={peer} onBack={() => setPeer(null)} socket={socket} />
+            </motion.div>
+          ) : (
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+              <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 0.1 }} transition={{ duration: 1 }}>
+                <ChatBubble sx={{ fontSize: 200, color: 'var(--primary)' }} />
+              </motion.div>
+              <Typography variant="h5" className="poppins" sx={{ mt: -4, fontWeight: 700, opacity: 0.4 }}>Send a secure message</Typography>
+              <Typography variant="body2" sx={{ mt: 1, opacity: 0.3 }}>Select a conversation to start chatting</Typography>
+            </Box>
+          )}
         </Box>
 
         {/* Call Handlers */}
