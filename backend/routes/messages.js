@@ -35,7 +35,7 @@ router.use((req, res, next) => {
 //  Get messages between current user and specific peer or group
 router.get('/:peerId', async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
     const peerId = req.params.peerId;
 
     // If group chat, fetch by group logic
@@ -65,7 +65,7 @@ router.get('/:peerId', async (req, res) => {
 // File upload route for chat
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
     console.log(`[messages] File upload request from user: ${userId}`);
 
     if (!req.file) {
@@ -117,7 +117,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 // Voice message upload route
 router.post('/voice', upload.single('voice'), async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id || req.user._id;
+    if (!userId) {
+      console.error('[messages] No user ID found in token payload');
+      return res.status(401).json({ error: 'Unauthorized: Invalid token payload' });
+    }
+
     console.log(`[messages] Voice upload request from user: ${userId}`);
 
     if (!req.file) {
@@ -176,7 +181,7 @@ router.post('/voice', upload.single('voice'), async (req, res) => {
 
 // Save text message
 router.post('/', async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.id || req.user._id;
   const { to, text, type } = req.body;
 
   if (!text || !to) {
