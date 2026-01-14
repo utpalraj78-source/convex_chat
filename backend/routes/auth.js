@@ -13,8 +13,6 @@ const router = express.Router();
 
 import { uploadToSupabase } from '../utils/supabaseStorage.js';
 
-const router = express.Router();
-
 // Profile picture upload setup (Memory storage for Supabase)
 const storage = multer.memoryStorage();
 const uploadAvatar = multer({ storage });

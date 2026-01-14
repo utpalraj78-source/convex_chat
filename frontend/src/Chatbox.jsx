@@ -249,24 +249,6 @@ export default function Chatbox({ user, peer, onBack, socket }) {
           </Box>
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
-          <IconButton
-            component={motion.button}
-            whileHover={{ scale: 1.1, bgcolor: 'var(--primary-glow)' }}
-            whileTap={{ scale: 0.9 }}
-            sx={{ color: 'var(--text-dim)' }}
-            onClick={() => handleStartCall('audio')}
-          >
-            <Call />
-          </IconButton>
-          <IconButton
-            component={motion.button}
-            whileHover={{ scale: 1.1, bgcolor: 'var(--primary-glow)' }}
-            whileTap={{ scale: 0.9 }}
-            sx={{ color: 'var(--text-dim)' }}
-            onClick={() => handleStartCall('video')}
-          >
-            <Videocam />
-          </IconButton>
           <IconButton sx={{ color: 'var(--text-dim)' }}><MoreVert /></IconButton>
         </Box>
       </Box>
