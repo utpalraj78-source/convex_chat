@@ -365,7 +365,10 @@ export default function App() {
         setOtp("");
         alert("Registered! Please enter the OTP sent to your email.");
       } else { alert(data.error || "Registration failed"); }
-    } catch (err) { console.error(err); }
+    } catch (err) { 
+      console.error(err); 
+      alert("Network Error: Could not reach the server. Please check your internet connection or server status.");
+    }
   };
 
   const handleVerifyOtp = async () => {
