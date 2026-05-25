@@ -29,6 +29,10 @@ const ALLOWED_ORIGINS = [
 const envPath = path.join(__dirname, '.env');
 dotenv.config({ path: envPath });
 
+if (process.env.CLIENT_URL) {
+  ALLOWED_ORIGINS.push(process.env.CLIENT_URL);
+}
+
 import attachWS from './socket.js';
 import authRouter from './routes/auth.js';
 import messageRouter from './routes/messages.js';
