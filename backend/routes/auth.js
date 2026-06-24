@@ -151,15 +151,13 @@ router.post('/register', async (req, res) => {
       password: hash,
       role: role || 'user',
       email,
-      verified: false,
+      verified: true,
       otp,
       otpExpiry
     });
 
-    await sendOtpEmail(email, otp);
-
     res.status(201).json({
-      message: "User registered. OTP sent to email.",
+      message: "User registered successfully.",
       username: user.username
     });
   } catch (err) {
@@ -247,10 +245,6 @@ router.post('/login', async (req, res) => {
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(400).json({ error: "Invalid password" });
-
-    if (!user.verified) {
-      return res.status(403).json({ error: "Email not verified" });
-    }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 

@@ -361,9 +361,8 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok) {
-        setPendingOtp({ username, email });
-        setOtp("");
-        alert("Registered! Please enter the OTP sent to your email.");
+        alert("Registered successfully! You can now log in.");
+        setView("login");
       } else { alert(data.error || "Registration failed"); }
     } catch (err) { 
       console.error(err); 
