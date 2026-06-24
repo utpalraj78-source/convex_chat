@@ -94,6 +94,7 @@ const startServer = async () => {
   try {
     const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/chat-app';
     await mongoose.connect(MONGO_URI);
+    console.log("✅ MongoDB Connected Successfully!");
 
     // Create admin user if doesn't exist
     const adminUser = await User.findOne({ username: 'heyitsadmin' });
