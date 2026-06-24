@@ -30,7 +30,9 @@ const envPath = path.join(__dirname, '.env');
 dotenv.config({ path: envPath });
 
 if (process.env.CLIENT_URL) {
-  ALLOWED_ORIGINS.push(process.env.CLIENT_URL);
+  let clientUrl = process.env.CLIENT_URL.trim();
+  if (clientUrl.endsWith('/')) clientUrl = clientUrl.slice(0, -1);
+  ALLOWED_ORIGINS.push(clientUrl);
 }
 
 import attachWS from './socket.js';
@@ -70,9 +72,17 @@ const filesDir = path.join(uploadsDir, 'files');
 // CORS middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  
+  if (req.path.startsWith('/auth')) {
+    console.log(`[CORS Check] Incoming request to ${req.path} from origin: ${origin || 'none'}`);
+  }
+
   if (ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (origin) {
+    console.log(`[CORS Blocked] Origin ${origin} is NOT in ALLOWED_ORIGINS:`, ALLOWED_ORIGINS);
   }
+  
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
