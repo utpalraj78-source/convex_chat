@@ -158,7 +158,6 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 **Utpal Raj**
 
-- Project Link: [Convex Project](https://github.com/utpalraj78-source)
 
 ---
 
